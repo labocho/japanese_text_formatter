@@ -1,0 +1,8 @@
+#!/usr/bin/env ruby
+require "japanese_text_formatter"
+
+formatter = JapaneseTextFormatter::Formatter.new
+
+ARGF.each_line do |line|
+  print(formatter.format(line))
+end
