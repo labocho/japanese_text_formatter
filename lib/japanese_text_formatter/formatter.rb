@@ -75,7 +75,7 @@ module JapaneseTextFormatter
           ')',
         ].join
 
-        text.gsub!(Regexp.compile(pattern), ' \k<wrap>')
+        text.gsub!(Regexp.compile(pattern), ' \k<wrap> ')
         text
       else
         raise ArgumentError
