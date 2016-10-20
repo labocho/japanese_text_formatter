@@ -59,6 +59,7 @@ module JapaneseTextFormatter
         ].join
 
         text.gsub!(Regexp.compile(pattern), ' \0 ')
+        text.gsub!(Regexp.compile(w + ' ([、。「」,\.\!\?:;])'), w + '\1') # '" .' -> '".'
         text
       when 2
         s, e = wrapper.each_char.to_a
@@ -76,6 +77,7 @@ module JapaneseTextFormatter
         ].join
 
         text.gsub!(Regexp.compile(pattern), ' \k<wrap> ')
+        text.gsub!(Regexp.compile(Regexp.escape(e) + ' ([、。「」,\.\!\?:;])'), e + '\1') # ') .' -> ').'
         text
       else
         raise ArgumentError
