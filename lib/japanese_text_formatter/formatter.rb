@@ -20,6 +20,8 @@ module JapaneseTextFormatter
     CHARACTER_DOES_NOT_REQUIRES_PRECEDING_SPACE_AFTER_WRAPPER =
       CHARACTER_REQUIRES_PRECEDING_SPACE +
       CHARACTER_INCLUDES_SPACE
+    CHARACTER_DOES_NOT_REQUIRES_TRAILING_SPACE_BEFORE_WRAPPER =
+      CHARACTER_INCLUDES_SPACE
     CHARACTER_DOES_NOT_REQUIRE_SPACE_BEFORE_LATIN_WORD_CHARACTER =
       LATIN_WORD_CHARACTER +
       CHARACTER_INCLUDES_SPACE +
@@ -89,6 +91,8 @@ module JapaneseTextFormatter
         text.gsub!(Regexp.compile(pattern), ' \0 ')
         # '" .' -> '".'
         text.gsub!(Regexp.compile(w + ' ([' + CHARACTER_DOES_NOT_REQUIRES_PRECEDING_SPACE_AFTER_WRAPPER + '])'), w + '\1')
+        # '。 "' -> '。"'
+        text.gsub!(Regexp.compile('([' + CHARACTER_DOES_NOT_REQUIRES_TRAILING_SPACE_BEFORE_WRAPPER + ']) ' + w), '\1' + w)
         text
       when 2
         s, e = wrapper.each_char.to_a
@@ -108,6 +112,8 @@ module JapaneseTextFormatter
         text.gsub!(Regexp.compile(pattern), ' \k<wrap> ')
         # ') .' -> ').'
         text.gsub!(Regexp.compile(Regexp.escape(e) + ' ([' + CHARACTER_DOES_NOT_REQUIRES_PRECEDING_SPACE_AFTER_WRAPPER + '])'), e + '\1')
+        # '。 (' -> '。('
+        text.gsub!(Regexp.compile('([' + CHARACTER_DOES_NOT_REQUIRES_TRAILING_SPACE_BEFORE_WRAPPER + ']) ' + Regexp.escape(s)), '\1' + s)
         text
       else
         raise ArgumentError
