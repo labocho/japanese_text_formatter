@@ -2,6 +2,32 @@ require "charwidth"
 
 module JapaneseTextFormatter
   class Formatter
+    LATIN_WORD_CHARACTER = Regexp.escape("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+    CHARACTER_REQUIRES_PRECEDING_SPACE = Regexp.escape(",.;:!?")
+    WRAPPER_DOES_NOT_INCLUDE_SPACE = [
+      '()',
+      '‘’',
+      '“”',
+      '"',
+      '`',
+      "'",
+    ]
+    CHARACTER_INCLUDES_PRECEDING_SPACE = Regexp.escape("「")
+    CHARACTER_INCLUDES_TRAILING_SPACE = Regexp.escape("、。」")
+    CHARACTER_INCLUDES_SPACE =
+      CHARACTER_INCLUDES_PRECEDING_SPACE +
+      CHARACTER_INCLUDES_TRAILING_SPACE
+    CHARACTER_DOES_NOT_REQUIRES_PRECEDING_SPACE_AFTER_WRAPPER =
+      CHARACTER_REQUIRES_PRECEDING_SPACE +
+      CHARACTER_INCLUDES_SPACE
+    CHARACTER_DOES_NOT_REQUIRE_SPACE_BEFORE_LATIN_WORD_CHARACTER =
+      LATIN_WORD_CHARACTER +
+      CHARACTER_INCLUDES_SPACE +
+      Regexp.escape(WRAPPER_DOES_NOT_INCLUDE_SPACE.join)
+    CHARACTER_DOES_NOT_REQUIRE_SPACE_AFTER_LATIN_WORD_CHARACTER =
+      CHARACTER_DOES_NOT_REQUIRE_SPACE_BEFORE_LATIN_WORD_CHARACTER +
+      CHARACTER_REQUIRES_PRECEDING_SPACE
+
     attr_reader :options
 
     def self.default_options
@@ -31,20 +57,22 @@ module JapaneseTextFormatter
     end
 
     def format_latin_text!(text)
-      text.gsub!(/([,\.;:\!\?」])([^\s])/, '\1 \2') # add space after , etc.
-      add_space_around_wrapper(text, '()')
-      add_space_around_wrapper(text, '‘’')
-      add_space_around_wrapper(text, '“”')
-      add_space_around_wrapper(text, '"')
-      add_space_around_wrapper(text, '`')
+      # add space after , etc.
+      text.gsub!(Regexp.compile('([' + CHARACTER_REQUIRES_PRECEDING_SPACE + '])([^\s])', '\1 \2'))
+      # add spaces around () etc.
+      WRAPPER_DOES_NOT_INCLUDE_SPACE.each do |wrapper|
+        add_space_around_wrapper(text, wrapper)
+      end
+      # strip unnecessary spaces
       text.gsub!(/  +/, " ")
+      # strip trailing spaces
       text.gsub!(/ +$/, "")
       text
     end
 
     def add_space_between_japanese_and_latin!(text)
-      text.gsub!(/([^\sa-zA-Z0-9\(、。「」])([a-zA-Z0-9])/, '\1 \2')
-      text.gsub!(/([a-zA-Z0-9])([^\sa-zA-Z0-9\)、。「」,\.\!\?:;])/, '\1 \2')
+      text.gsub!(Regexp.compile('([^\s' + CHARACTER_DOES_NOT_REQUIRE_SPACE_BEFORE_LATIN_WORD_CHARACTER + '])([' + LATIN_WORD_CHARACTER + '])'), '\1 \2')
+      text.gsub!(Regexp.compile('(['+ LATIN_WORD_CHARACTER + '])([^\s' + CHARACTER_DOES_NOT_REQUIRE_SPACE_AFTER_LATIN_WORD_CHARACTER + '])'), '\1 \2')
       text
     end
 
@@ -59,7 +87,8 @@ module JapaneseTextFormatter
         ].join
 
         text.gsub!(Regexp.compile(pattern), ' \0 ')
-        text.gsub!(Regexp.compile(w + ' ([、。「」,\.\!\?:;])'), w + '\1') # '" .' -> '".'
+        # '" .' -> '".'
+        text.gsub!(Regexp.compile(w + ' ([' + CHARACTER_DOES_NOT_REQUIRES_PRECEDING_SPACE_AFTER_WRAPPER + '])'), w + '\1')
         text
       when 2
         s, e = wrapper.each_char.to_a
@@ -77,7 +106,8 @@ module JapaneseTextFormatter
         ].join
 
         text.gsub!(Regexp.compile(pattern), ' \k<wrap> ')
-        text.gsub!(Regexp.compile(Regexp.escape(e) + ' ([、。「」,\.\!\?:;])'), e + '\1') # ') .' -> ').'
+        # ') .' -> ').'
+        text.gsub!(Regexp.compile(Regexp.escape(e) + ' ([' + CHARACTER_DOES_NOT_REQUIRES_PRECEDING_SPACE_AFTER_WRAPPER + '])'), e + '\1')
         text
       else
         raise ArgumentError
